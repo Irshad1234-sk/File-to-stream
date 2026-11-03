@@ -1,6 +1,7 @@
 fastapi[standard]
-pyrogram
+pyrogram==2.0.106
 tgcrypto
 python-dotenv
 python-magic
 motor
+dnspython
