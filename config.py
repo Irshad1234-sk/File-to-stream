@@ -1,55 +1,72 @@
 # config.py
+# Saari secret values SIRF Environment Variables se aayengi (Voroa dashboard me set karo).
+# Code me kabhi token / password mat likho.
 
 import os
 from dotenv import load_dotenv
 
-# Load .env locally (Voroa par Environment Variables bhi use honge)
 load_dotenv()
 
 
+def _get(name, default=""):
+    return os.environ.get(name, default).strip()
+
+
 def get_channel_value(value):
-    """Convert numeric channel IDs to int; keep usernames as strings."""
+    """Numeric channel ID -> int, username -> string, khali -> 0."""
+    value = (value or "").strip()
     if not value:
         return 0
-
-    value = value.strip()
-
     try:
         return int(value)
     except ValueError:
-        return value
+        return value.lstrip("@")
+
+
+def _get_int(name, default=0):
+    try:
+        return int(_get(name, str(default)) or default)
+    except ValueError:
+        return default
 
 
 class Config:
-    # Telegram API credentials
-    API_ID = int(os.environ.get("API_ID", "38073622").strip() or "0")
-    API_HASH = os.environ.get("API_HASH", "bba60563d6c7dfe8d9d4b38381a873d9").strip()
+    # Telegram API credentials (my.telegram.org se)
+    API_ID = _get_int("API_ID")
+    API_HASH = _get("API_HASH")
 
-    # Bot credentials
-    BOT_TOKEN = os.environ.get("BOT_TOKEN", "8701553802:AAERDn4dBmA7QitBVXsV9WRfJ6uGx41f8cE").strip()
-    BOT_USERNAME = os.environ.get("BOT_USERNAME", "http://t.me/Movie_download12bot").strip().lstrip("@")
+    # Bot credentials (@BotFather se)
+    BOT_TOKEN = _get("BOT_TOKEN")
+    BOT_USERNAME = _get("BOT_USERNAME").replace("https://t.me/", "").replace("http://t.me/", "").lstrip("@")
 
-    # Owner
-    OWNER_ID = int(os.environ.get("OWNER_ID", "7407461573").strip() or "0")
+    # Owner ka Telegram user ID
+    OWNER_ID = _get_int("OWNER_ID")
 
-    # Storage channel
-    STORAGE_CHANNEL = get_channel_value(
-        os.environ.get("STORAGE_CHANNEL", "-1004302762211")
-    )
+    # Private storage channel (bot ko admin banao). Example: -1001234567890
+    STORAGE_CHANNEL = get_channel_value(_get("STORAGE_CHANNEL"))
 
-    # Website / redirect
-    BASE_URL = os.environ.get("BASE_URL", "").strip().rstrip("/")
-    REDIRECT_BLOGGER_URL = os.environ.get(
-        "REDIRECT_BLOGGER_URL", ""
-    ).strip()
-    BLOGGER_PAGE_URL = os.environ.get(
-        "BLOGGER_PAGE_URL", ""
-    ).strip()
+    # Website ka public URL, bina last slash ke.
+    # Example: https://autofilter-7bb1.getvoroa.com
+    BASE_URL = _get("BASE_URL").rstrip("/")
 
-    # Database
-    DATABASE_URL = os.environ.get("DATABASE_URL", "mongodb+srv://<db_username>:5ZhoCsY8EXh7c8C7@cluster0.gex5qt7.mongodb.net/?appName=Cluster0").strip()
+    # MongoDB connection string (password ke saath, <db_username> jaisa placeholder nahi)
+    DATABASE_URL = _get("DATABASE_URL")
 
-    # Force subscribe channel
-    FORCE_SUB_CHANNEL = get_channel_value(
-        os.environ.get("FORCE_SUB_CHANNEL", "-1004302762211")
-    )
+    # Force subscribe (OPTIONAL). Yeh STORAGE_CHANNEL se ALAG channel hona chahiye.
+    # Khali chhodo to force-sub band rahega.
+    FORCE_SUB_CHANNEL = get_channel_value(_get("FORCE_SUB_CHANNEL"))
+    # Private channel ho to invite link yahan do (https://t.me/+xxxx)
+    FORCE_SUB_LINK = _get("FORCE_SUB_LINK")
+
+    @classmethod
+    def missing(cls):
+        """Zaroori variables jo set nahi hain unki list."""
+        need = {
+            "API_ID": cls.API_ID,
+            "API_HASH": cls.API_HASH,
+            "BOT_TOKEN": cls.BOT_TOKEN,
+            "STORAGE_CHANNEL": cls.STORAGE_CHANNEL,
+            "DATABASE_URL": cls.DATABASE_URL,
+            "BASE_URL": cls.BASE_URL,
+        }
+        return [k for k, v in need.items() if not v]
